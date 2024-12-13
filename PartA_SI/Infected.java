@@ -15,7 +15,6 @@ import repast.simphony.util.ContextUtils;
 
 public class Infected {
     private static int infectedCount = 0;
-
     private ContinuousSpace<Object> space;
     private Grid<Object> grid;
     private double beta;
@@ -67,7 +66,6 @@ public class Infected {
                 susceptible.add(obj);
             }
         }
-
         // Randomly infect one susceptible agent
         if (!susceptible.isEmpty() && Math.random() < this.beta) {
             Object objToInfect = susceptible.get(RandomHelper.nextIntFromTo(0, susceptible.size() - 1));
@@ -86,5 +84,4 @@ public class Infected {
             net.addEdge(this, infected);
         }
     }
-
 }

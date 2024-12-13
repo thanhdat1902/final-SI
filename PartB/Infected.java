@@ -12,7 +12,6 @@ import repast.simphony.space.continuous.ContinuousSpace;
 import repast.simphony.space.continuous.NdPoint;
 import repast.simphony.space.graph.Network;
 import repast.simphony.space.grid.Grid;
-import repast.simphony.space.grid.GridPoint;
 import repast.simphony.util.ContextUtils;
 
 public class Infected {
@@ -48,14 +47,14 @@ public class Infected {
             infect((Susceptible) randomNeighbor);
         }
 
-        // Attempt recovery
-        recover();
-
         // Stop the simulation if no infected agents are left
         if (getInfectedCount() == 0) {
             System.out.print("Stop Infected");
             stopSimulation();
         }
+
+        // Attempt recovery
+        recover();
     }
 
     public static synchronized void incrementInfectedCount() {

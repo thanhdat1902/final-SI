@@ -20,14 +20,6 @@ import repast.simphony.space.grid.SimpleGridAdder;
 import repast.simphony.space.grid.WrapAroundBorders;
 
 public class EpidemiologyModelBuilder implements ContextBuilder<Object> {
-
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see
-	 * repast.simphony.dataLoader.ContextBuilder#build(repast.simphony.context
-	 * .Context)
-	 */
 	@Override
 	public Context build(Context<Object> context) {
 		context.setId("partAModelSI");
@@ -62,7 +54,7 @@ public class EpidemiologyModelBuilder implements ContextBuilder<Object> {
 
 		for (int i = 0; i < humanCount; i++) {
 			int energy = RandomHelper.nextIntFromTo(4, 10);
-			context.add(new Susceptible(space, grid, energy));
+			context.add(new Susceptible());
 		}
 
 		for (Object obj : context.getObjects(Object.class)) {
