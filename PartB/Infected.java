@@ -1,6 +1,9 @@
 package networksim;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Random;
 import java.util.Set;
 import repast.simphony.context.Context;
 import repast.simphony.engine.environment.RunEnvironment;
@@ -29,23 +32,28 @@ public class Infected {
 
     @ScheduledMethod(start = 1, interval = 1)
     public void step() {
-        Context<Object> context = ContextUtils.getContext(this);
+    	Context<Object> context = ContextUtils.getContext(this);
         Network<Object> network = (Network<Object>) context.getProjection("infection network");
 
-        // Attempt to infect susceptible neighbors
+        // Attempt to infect one random susceptible neighbor
+        List<Object> susceptibleNeighbors = new ArrayList<>();
         for (Object neighbor : network.getAdjacent(this)) {
             if (neighbor instanceof Susceptible) {
-                infect((Susceptible) neighbor);
+                susceptibleNeighbors.add(neighbor);
             }
+        }
+        if (!susceptibleNeighbors.isEmpty()) {
+            // Infect one random neighbor
+            Object randomNeighbor = susceptibleNeighbors.get(new Random().nextInt(susceptibleNeighbors.size()));
+            infect((Susceptible) randomNeighbor);
         }
 
         // Attempt recovery
         recover();
 
         // Stop the simulation if no infected agents are left
-
         if (getInfectedCount() == 0) {
-        	System.out.print("Stop Infected");
+            System.out.print("Stop Infected");
             stopSimulation();
         }
     }
