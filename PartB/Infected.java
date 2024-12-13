@@ -5,20 +5,26 @@ import java.util.Set;
 import repast.simphony.context.Context;
 import repast.simphony.engine.environment.RunEnvironment;
 import repast.simphony.engine.schedule.ScheduledMethod;
+import repast.simphony.space.continuous.ContinuousSpace;
+import repast.simphony.space.continuous.NdPoint;
 import repast.simphony.space.graph.Network;
+import repast.simphony.space.grid.Grid;
+import repast.simphony.space.grid.GridPoint;
 import repast.simphony.util.ContextUtils;
 
 public class Infected {
     private static int infectedCount = 0;
-    
+    private ContinuousSpace<Object> space;
+    private Grid<Object> grid;
     private double beta;   // Infection probability
     private double gamma;  // Recovery probability
 
-    public Infected(double beta, double gamma) {
+    public Infected(ContinuousSpace<Object> space, Grid<Object> grid, double beta, double gamma) {
+    	this.space = space;
+        this.grid = grid;
         this.beta = beta;
         this.gamma = gamma;
         incrementInfectedCount();
-
     }
 
     @ScheduledMethod(start = 1, interval = 1)
@@ -63,6 +69,7 @@ public class Infected {
 
     private void infect(Susceptible susceptible) {
         // Infect the susceptible neighbor with probability beta
+
         if (Math.random() < beta) {
             Context<Object> context = ContextUtils.getContext(susceptible);
             Network<Object> network = (Network<Object>) context.getProjection("infection network");
@@ -74,11 +81,14 @@ public class Infected {
             }
             
             // Remove the susceptible agent from context and network (edges are removed automatically)
+            NdPoint spacePt = space.getLocation(susceptible);
+
             context.remove(susceptible);
 
             // Create and add the new infected agent
-            Infected newInfected = new Infected(beta, gamma);
+            Infected newInfected = new Infected(this.space, this.grid, beta, gamma);
             context.add(newInfected);
+            space.moveTo(newInfected, spacePt.getX(), spacePt.getY());
 
             // Recreate the edges for the new infected agent
             for (Object neighbor : neighbors) {
@@ -101,11 +111,15 @@ public class Infected {
             }
 
             // Remove the infected agent from context and network (edges are removed automatically)
+            NdPoint spacePt = space.getLocation(this);
+            
             context.remove(this);
 
             // Create and add the new recovered agent
             Recovered recovered = new Recovered();
+            
             context.add(recovered);
+            space.moveTo(recovered, spacePt.getX(), spacePt.getY());
             decrementInfectedCount();
 
             // Recreate the edges for the new recovered agent

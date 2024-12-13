@@ -50,7 +50,6 @@ public class EpidemiologyModelBuilder implements ContextBuilder<Object> {
 
 		Parameters params = RunEnvironment.getInstance().getParameters();
 		
-    	System.out.print("asdasdad");
 
 		double beta = (Double) params.getValue("beta");
 		double gamma = (Double) params.getValue("gamma");

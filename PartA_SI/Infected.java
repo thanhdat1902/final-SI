@@ -2,71 +2,45 @@ package partAModelSI;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import repast.simphony.context.Context;
 import repast.simphony.engine.schedule.ScheduledMethod;
-import repast.simphony.query.space.grid.GridCell;
-import repast.simphony.query.space.grid.GridCellNgh;
 import repast.simphony.random.RandomHelper;
-import repast.simphony.space.SpatialMath;
 import repast.simphony.space.continuous.ContinuousSpace;
 import repast.simphony.space.continuous.NdPoint;
 import repast.simphony.space.graph.Network;
 import repast.simphony.space.grid.Grid;
 import repast.simphony.space.grid.GridPoint;
 import repast.simphony.util.ContextUtils;
-import repast.simphony.util.SimUtilities;
 
 public class Infected {
-	private static int infectedCount = 0;
-	
-	private ContinuousSpace<Object> space;
-	private Grid<Object> grid;
-	private boolean moved;
-	private double beta;
+    private static int infectedCount = 0;
+
+    private ContinuousSpace<Object> space;
+    private Grid<Object> grid;
+    private double beta;
     private int N;
     
-	public Infected(ContinuousSpace<Object> space, Grid<Object> grid, double beta, int N) {
-		this.space = space;
-		this.grid = grid;
-		this.beta = beta;
-		this.N = N;
-		incrementInfectedCount();
-	}
+    public Infected(ContinuousSpace<Object> space, Grid<Object> grid, double beta, int N) {
+        this.space = space;
+        this.grid = grid;
+        this.beta = beta;
+        this.N = N;
+        incrementInfectedCount();
+    }
 
-	@ScheduledMethod(start = 1, interval = 1)
-	public void step() {
-		// get the grid location of this Infected
-		GridPoint pt = grid.getLocation(this);
+    @ScheduledMethod(start = 1, interval = 1)
+    public void step() {
+        // Attempt infection at the current location
+        infect();
 
-		// use the GridCellNgh class to create GridCells for
-		// the surrounding neighborhood.
-		GridCellNgh<Susceptible> nghCreator = new GridCellNgh<Susceptible>(grid, pt, Susceptible.class, 1, 1);
-		List<GridCell<Susceptible>> gridCells = nghCreator.getNeighborhood(true);
-		SimUtilities.shuffle(gridCells, RandomHelper.getUniform());
-
-		GridPoint pointWithMostSusceptible = null;
-		int maxCount = -1;
-		for (GridCell<Susceptible> cell : gridCells) {
-			if (cell.size() > maxCount) {
-				pointWithMostSusceptible = cell.getPoint();
-				maxCount = cell.size();
-			}
-		}
-		moveTowards(pointWithMostSusceptible);
-		if(maxCount > 0) {
-			infect();
-		}
-		System.out.println(this.N);
-		System.out.println(getInfectedCount());
-        // Stop the simulation after maxTicks
+        // Stop the simulation if no infected agents remain
         if (getInfectedCount() == this.N) {
             stopSimulation();
         }
-		
-	}
-	public static synchronized void incrementInfectedCount() {
+    }
+
+    public static synchronized void incrementInfectedCount() {
         infectedCount++;
     }
 
@@ -77,50 +51,40 @@ public class Infected {
     public static synchronized int getInfectedCount() {
         return infectedCount;
     }
-	
-	public void stopSimulation() {
-	    System.out.println("Stopping the simulation: no infected agents left");
-	    repast.simphony.engine.environment.RunEnvironment.getInstance().endRun();
-	}
 
-	public void moveTowards(GridPoint pt) {
-		// only move if we are not already in this grid location
-		if (!pt.equals(grid.getLocation(this))) {
-			NdPoint myPoint = space.getLocation(this);
-			NdPoint otherPoint = new NdPoint(pt.getX(), pt.getY());
-			double angle = SpatialMath.calcAngleFor2DMovement(space, myPoint, otherPoint);
-			space.moveByVector(this, 1, angle, 0);
-			myPoint = space.getLocation(this);
-			grid.moveTo(this, (int) myPoint.getX(), (int) myPoint.getY());
-			moved = true;
-		}
-	}
+    public void stopSimulation() {
+        System.out.println("Stopping the simulation: no infected agents left");
+        repast.simphony.engine.environment.RunEnvironment.getInstance().endRun();
+    }
 
-	public void infect() {
+    public void infect() {
+        GridPoint pt = grid.getLocation(this);
+        List<Object> susceptible = new ArrayList<>();
 
-		GridPoint pt = grid.getLocation(this);
-		List<Object> susceptible = new ArrayList<Object>();
-		for (Object obj : grid.getObjectsAt(pt.getX(), pt.getY())) {
-			if (obj instanceof Susceptible) {
-				susceptible.add(obj);
-			}
-		}
+        // Collect all susceptible agents at the current location
+        for (Object obj : grid.getObjects()) {
+            if (obj instanceof Susceptible) {
+                susceptible.add(obj);
+            }
+        }
 
-		long susceptibleToIinfect = (long) Math.ceil(this.beta * susceptible.size());
-		List<Object> susceptibleToInfect = susceptible.stream().limit(susceptibleToIinfect).collect(Collectors.toList());
-		susceptibleToInfect.stream().forEach(obj -> {
-			NdPoint spacePt = space.getLocation(obj);
-			Context<Object> context = ContextUtils.getContext(obj);
-			context.remove(obj);
-			Infected infected = new Infected(space, grid, this.beta, this.N);
-			context.add(infected);
-			space.moveTo(infected, spacePt.getX(), spacePt.getY());
-			grid.moveTo(infected, pt.getX(), pt.getY());
+        // Randomly infect one susceptible agent
+        if (!susceptible.isEmpty() && Math.random() < this.beta) {
+            Object objToInfect = susceptible.get(RandomHelper.nextIntFromTo(0, susceptible.size() - 1));
 
-			Network<Object> net = (Network<Object>) context.getProjection("infection network");
-			net.addEdge(this, infected);
-		});
+            // Convert the selected susceptible agent into an infected agent
+            NdPoint spacePt = space.getLocation(objToInfect);
+            Context<Object> context = ContextUtils.getContext(objToInfect);
+            context.remove(objToInfect);
+            Infected infected = new Infected(space, grid, this.beta, this.N);
+            context.add(infected);
+            space.moveTo(infected, spacePt.getX(), spacePt.getY());
+            grid.moveTo(infected, pt.getX(), pt.getY());
 
-	}
-	
+            // Add an edge in the infection network
+            Network<Object> net = (Network<Object>) context.getProjection("infection network");
+            net.addEdge(this, infected);
+        }
+    }
+
 }
